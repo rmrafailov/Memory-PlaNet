@@ -1,0 +1,212 @@
+!!python/object/new:planet.tools.attr_dict.AttrDict
+dictitems:
+  batch_shape: !!python/tuple
+  - 50
+  - 50
+  cell: !!python/object/apply:functools.partial
+    args:
+    - &id001 !!python/name:planet.models.rssm.RSSM ''
+    state: !!python/tuple
+    - *id001
+    - !!python/tuple
+      - 30
+      - 200
+      - 200
+      - false
+      - false
+      - 0.1
+    - {}
+    - null
+  data_loader: scan
+  debug: false
+  decoder: &id002 !!python/name:planet.networks.conv_ha.decoder ''
+  encoder: !!python/name:planet.networks.conv_ha.encoder ''
+  free_nats: 2.0
+  heads: !!python/object/new:planet.tools.attr_dict.AttrDict
+    dictitems:
+      image: *id002
+      reward: !!python/name:planet.networks.basic.feed_forward ''
+    state:
+      _unlocked: false
+  isolate_envs: thread
+  logdir: ./logs/00001
+  max_episodes: null
+  max_steps: 20000000
+  mean_metrics_every: 5000
+  num_chunks: 1
+  open_loop_context: 5
+  optimizers: !!python/object/new:planet.tools.attr_dict.AttrDict
+    dictitems:
+      main: !!python/object/apply:functools.partial
+        args:
+        - &id003 !!python/name:planet.tools.custom_optimizer.CustomOptimizer ''
+        state: !!python/tuple
+        - *id003
+        - !!python/tuple []
+        - clipping: 1000.0
+          exclude: .*/head_(?!image|reward)[a-z]+/.*
+          include: .*
+          learning_rate: 0.001
+          optimizer_cls: !!python/object/apply:functools.partial
+            args:
+            - &id004 !!python/name:tensorflow.python.training.adam.AdamOptimizer ''
+            state: !!python/tuple
+            - *id004
+            - !!python/tuple []
+            - epsilon: 0.0001
+            - null
+          schedule: !!python/object/apply:functools.partial
+            args:
+            - &id005 !!python/name:planet.tools.schedule.linear ''
+            state: !!python/tuple
+            - *id005
+            - !!python/tuple []
+            - ramp: 10000
+            - null
+        - null
+    state:
+      _unlocked: false
+  overshooting: 49
+  overshooting_losses: !!python/object/new:planet.tools.attr_dict.AttrDict
+    dictitems:
+      divergence: 1.0
+      reward: 100.0
+    state:
+      _unlocked: false
+  postprocess_fn: !!python/object/apply:functools.partial
+    args:
+    - &id006 !!python/name:planet.tools.preprocess.postprocess ''
+    state: !!python/tuple
+    - *id006
+    - !!python/tuple []
+    - bits: 5
+    - null
+  preprocess_fn: !!python/object/apply:functools.partial
+    args:
+    - &id007 !!python/name:planet.tools.preprocess.preprocess ''
+    state: !!python/tuple
+    - *id007
+    - !!python/tuple []
+    - bits: 5
+    - null
+  random_collects: !!python/object/new:planet.tools.attr_dict.AttrDict
+    dictitems:
+      test-gym_racing: !!python/object/new:planet.tools.attr_dict.AttrDict
+        dictitems:
+          num_episodes: 3
+          save_episode_dir: ./logs/00001/test_episodes
+          task: &id009 !!python/object/new:planet.scripts.tasks.Task
+          - gym_racing
+          - !!python/object/apply:functools.partial
+            args:
+            - &id008 !!python/name:planet.scripts.tasks._gym_env ''
+            state: !!python/tuple
+            - *id008
+            - !!python/tuple
+              - 2
+              - 50
+              - 500
+              - CarRacing-v0
+            - obs_is_image: true
+            - null
+          - 500
+          - - reward
+        state:
+          _unlocked: false
+      train-gym_racing: !!python/object/new:planet.tools.attr_dict.AttrDict
+        dictitems:
+          num_episodes: 3
+          save_episode_dir: ./logs/00001/train_episodes
+          task: *id009
+        state:
+          _unlocked: false
+    state:
+      _unlocked: false
+  savers:
+  - !!python/object/new:planet.tools.attr_dict.AttrDict
+    dictitems:
+      exclude: !!python/tuple
+      - .*_temporary.*
+    state:
+      _unlocked: false
+  scan_episodes_every: 10
+  sim_collects: !!python/object/new:planet.tools.attr_dict.AttrDict
+    dictitems:
+      train-gym_racing-cem-12: !!python/object/new:planet.tools.attr_dict.AttrDict
+        dictitems:
+          exploration: !!python/object/new:planet.tools.attr_dict.AttrDict
+            dictitems:
+              scale: 0.3
+              schedule: !!python/object/apply:functools.partial
+                args:
+                - *id005
+                state: !!python/tuple
+                - *id005
+                - !!python/tuple []
+                - ramp: 0
+                - null
+            state:
+              _unlocked: false
+          num_agents: 1
+          objective: !!python/name:planet.scripts.configs._define_simulation.%3Clocals%3E.objective ''
+          planner: !!python/object/apply:functools.partial
+            args:
+            - &id010 !!python/name:planet.control.planning.cross_entropy_method ''
+            state: !!python/tuple
+            - *id010
+            - !!python/tuple []
+            - amount: 1000
+              horizon: 12
+              iterations: 10
+              topk: 100
+            - null
+          save_episode_dir: ./logs/00001/train_episodes
+          steps_after: 5000
+          steps_every: 5000
+          task: *id009
+        state:
+          _unlocked: false
+    state:
+      _unlocked: false
+  sim_summaries: !!python/object/new:planet.tools.attr_dict.AttrDict
+    dictitems:
+      summary-gym_racing-cem-12: !!python/object/new:planet.tools.attr_dict.AttrDict
+        dictitems:
+          num_agents: 1
+          objective: !!python/name:planet.scripts.configs._define_simulation.%3Clocals%3E.objective ''
+          planner: !!python/object/apply:functools.partial
+            args:
+            - *id010
+            state: !!python/tuple
+            - *id010
+            - !!python/tuple []
+            - amount: 1000
+              horizon: 12
+              iterations: 10
+              topk: 100
+            - null
+          task: *id009
+        state:
+          _unlocked: false
+    state:
+      _unlocked: false
+  stop_os_posterior_gradient: true
+  tasks:
+  - *id009
+  test_checkpoint_every: 100
+  test_dir: ./logs/00001/test_episodes
+  test_steps: 100
+  train_checkpoint_every: null
+  train_dir: ./logs/00001/train_episodes
+  train_log_every: 50000
+  train_steps: 50000
+  zero_step_losses: !!python/object/new:planet.tools.attr_dict.AttrDict
+    dictitems:
+      divergence: 1.0
+      global_divergence: 0.1
+      image: 1.0
+      reward: 10.0
+    state:
+      _unlocked: false
+state:
+  _unlocked: false

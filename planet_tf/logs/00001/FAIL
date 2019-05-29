@@ -1,0 +1,56 @@
+Traceback (most recent call last):
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/framework/ops.py", line 1628, in _create_c_op
+    c_op = c_api.TF_FinishOperation(op_desc)
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Shapes must be equal rank, but are 2 and 3 for 'graph/rnn/while/Select_2' (op: 'Select') with input shapes: [50], [50,200], [50,4,64].
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/scr/rafailov/memimg/planet/planet/training/running.py", line 199, in __iter__
+    for value in self._process_fn(self._logdir, *args):
+  File "/scr/rafailov/memimg/planet/planet/scripts/train.py", line 78, in process
+    training.define_model, dataset, logdir, config):
+  File "/scr/rafailov/memimg/planet/planet/training/utility.py", line 160, in train
+    score, summary = model_fn(data, trainer, config)
+  File "/scr/rafailov/memimg/planet/planet/training/define_model.py", line 71, in define_model
+    config.overshooting + 1)
+  File "/scr/rafailov/memimg/planet/planet/tools/overshooting.py", line 90, in overshooting
+    swap_memory=False, time_major=True)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/ops/rnn.py", line 664, in dynamic_rnn
+    dtype=dtype)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/ops/rnn.py", line 872, in _dynamic_rnn_loop
+    swap_memory=swap_memory)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/ops/control_flow_ops.py", line 3291, in while_loop
+    return_same_structure)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/ops/control_flow_ops.py", line 3004, in BuildLoop
+    pred, body, original_loop_vars, loop_vars, shape_invariants)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/ops/control_flow_ops.py", line 2939, in _BuildLoop
+    body_result = body(*packed_vars_for_body)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/ops/control_flow_ops.py", line 3260, in <lambda>
+    body = lambda i, lv: (i + 1, orig_body(*lv))
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/ops/rnn.py", line 838, in _time_step
+    skip_conditionals=True)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/ops/rnn.py", line 279, in _rnn_step
+    final_output_and_state = _copy_some_through(new_output, new_state)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/ops/rnn.py", line 248, in _copy_some_through
+    for zero_output, new_output in zip(flat_zero_output, flat_new_output)]
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/ops/rnn.py", line 248, in <listcomp>
+    for zero_output, new_output in zip(flat_zero_output, flat_new_output)]
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/ops/rnn.py", line 240, in _copy_one_through
+    return array_ops.where(copy_cond, output, new_output)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/ops/array_ops.py", line 2624, in where
+    return gen_math_ops.select(condition=condition, x=x, y=y, name=name)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/ops/gen_math_ops.py", line 6997, in select
+    "Select", condition=condition, t=x, e=y, name=name)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/framework/op_def_library.py", line 787, in _apply_op_helper
+    op_def=op_def)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py", line 488, in new_func
+    return func(*args, **kwargs)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/framework/ops.py", line 3274, in create_op
+    op_def=op_def)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/framework/ops.py", line 1792, in __init__
+    control_input_ops)
+  File "/scr/rafailov/anaconda2/envs/memimg/lib/python3.6/site-packages/tensorflow/python/framework/ops.py", line 1631, in _create_c_op
+    raise ValueError(str(e))
+ValueError: Shapes must be equal rank, but are 2 and 3 for 'graph/rnn/while/Select_2' (op: 'Select') with input shapes: [50], [50,200], [50,4,64].
+
