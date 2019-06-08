@@ -500,8 +500,9 @@ class DNC(torch.nn.Module):
         })
 
         # input shape: [ batch, channels ]
-        batch_size = in_data.size(0)
-        
+        print("In Data:", in_data.shape)
+        batch_size = in_data.size(0 if self.batch_first else 1)
+
         if self.memory is None:                    
                     self.write_head.new_sequence()
                     self.read_head.new_sequence()

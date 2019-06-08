@@ -26,7 +26,7 @@ class TransitionModel(nn.Module):
     #self.rnn = nn.GRUCell(hidden_size, hidden_size)
     controller_constructor = functools.partial(LSTMController, out_from_all_layers=True)
     self.rnn = EnhancedDNC(belief_size, belief_size, 32, 128, 4, controller_constructor([64, 64]),
-                batch_first=False, 
+                batch_first=True, 
                 mask=True, 
                 dealloc_content=True,
                 link_sharpness_control=True, 
