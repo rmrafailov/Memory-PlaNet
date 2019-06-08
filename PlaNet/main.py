@@ -32,8 +32,8 @@ parser.add_argument('--state-size', type=int, default=30, metavar='Z', help='Sta
 parser.add_argument('--action-repeat', type=int, default=2, metavar='R', help='Action repeat')
 parser.add_argument('--action-noise', type=float, default=0.3, metavar='ε', help='Action noise')
 parser.add_argument('--episodes', type=int, default=1000, metavar='E', help='Total number of episodes')
-parser.add_argument('--seed-episodes', type=int, default=5, metavar='S', help='Seed episodes')
-parser.add_argument('--collect-interval', type=int, default=100, metavar='C', help='Collect interval')
+parser.add_argument('--seed-episodes', type=int, default=1, metavar='S', help='Seed episodes')
+parser.add_argument('--collect-interval', type=int, default=10, metavar='C', help='Collect interval')
 parser.add_argument('--batch-size', type=int, default=50, metavar='B', help='Batch size')
 parser.add_argument('--chunk-size', type=int, default=50, metavar='L', help='Chunk size')
 parser.add_argument('--overshooting-distance', type=int, default=50, metavar='D', help='Latent overshooting distance/latent overshooting weight for t = 1')
@@ -172,6 +172,7 @@ for episode in tqdm(range(metrics['episodes'][-1] + 1, args.episodes + 1), total
     (observation_loss + reward_loss + kl_loss).backward()
     nn.utils.clip_grad_norm_(param_list, args.grad_clip_norm, norm_type=2)
     optimiser.step()
+    transition_model.rnn.memory = None
     # Store (0) observation loss (1) reward loss (2) KL loss
     losses.append([observation_loss.item(), reward_loss.item(), kl_loss.item()])
 

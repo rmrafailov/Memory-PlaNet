@@ -512,6 +512,7 @@ class DNC(torch.nn.Module):
             
 
         # run the controller
+        print("Batch_size:", batch_size)
         prev_read_data = self.read_head.get_prev_data(self.memory).view([batch_size, -1])
 
         control_data = self.controller(torch.cat([in_data, prev_read_data], -1))
