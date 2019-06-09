@@ -500,7 +500,7 @@ class DNC(torch.nn.Module):
         })
 
         # input shape: [ batch, channels ]
-        print("In Data:", in_data.shape)
+        #print("In Data:", in_data.shape)
         batch_size = in_data.size(0 if self.batch_first else 1)
 
         if self.memory is None:                    
@@ -512,7 +512,7 @@ class DNC(torch.nn.Module):
             
 
         # run the controller
-        print("Batch_size:", batch_size)
+        #print("Batch_size:", batch_size)
         prev_read_data = self.read_head.get_prev_data(self.memory).view([batch_size, -1])
 
         control_data = self.controller(torch.cat([in_data, prev_read_data], -1))
@@ -535,7 +535,7 @@ class DNC(torch.nn.Module):
         self.memory = self.write_head(self.memory, write_head_control, prev_read_dist, debug=dict_get(debug,"write_head"))
 
         prev_write = self.write_head.get_prev_write()
-        forward_dist, backward_dist = self.temporal_link(prev_write["write_dist"] if prev_write is not None else None, prev_read_dist, debug=dict_get(debug, "temporal_links"))
+        forward_dist, backward_dist = self.temporal_link( prev_write["write_dist"] if prev_write is not None else None, prev_read_dist, debug=dict_get(debug, "temporal_links"))
 
         if self.sharpness_control is not None:
             forward_dist, backward_dist = self.sharpness_control(tensors[0], forward_dist, backward_dist)

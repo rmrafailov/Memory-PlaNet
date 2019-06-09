@@ -46,9 +46,9 @@ parser.add_argument('--learning-rate', type=float, default=1e-3, metavar='α', h
 parser.add_argument('--grad-clip-norm', type=float, default=1000, metavar='C', help='Gradient clipping norm')
 parser.add_argument('--planning-horizon', type=int, default=12, metavar='H', help='Planning horizon distance')
 parser.add_argument('--optimisation-iters', type=int, default=10, metavar='I', help='Planning optimisation iterations')
-parser.add_argument('--candidates', type=int, default=1000, metavar='J', help='Candidate samples per iteration')
+parser.add_argument('--candidates', type=int, default=123, metavar='J', help='Candidate samples per iteration')
 parser.add_argument('--top-candidates', type=int, default=100, metavar='K', help='Number of top candidates to fit')
-parser.add_argument('--test-interval', type=int, default=25, metavar='I', help='Test interval (episodes)')
+parser.add_argument('--test-interval', type=int, default=2, metavar='I', help='Test interval (episodes)')
 parser.add_argument('--test-episodes', type=int, default=10, metavar='E', help='Number of test episodes')
 parser.add_argument('--checkpoint-interval', type=int, default=50, metavar='I', help='Checkpoint interval (episodes)')
 parser.add_argument('--checkpoint-experience', action='store_true', help='Checkpoint experience replay')
@@ -116,9 +116,10 @@ free_nats = torch.full((1, ), args.free_nats, device=args.device)  # Allowed dev
 
 def update_belief_and_act(args, env, planner, transition_model, encoder, belief, posterior_state, action, observation, test):
   # Infer belief over current state q(s_t|o≤t,a<t) from the history
-  belief, _, _, _, posterior_state, _, _ = transition_model(posterior_state, action.unsqueeze(dim=0), belief, encoder(observation).unsqueeze(dim=0))  # Action and observation need extra time dimension
-  belief, posterior_state = belief.squeeze(dim=0), posterior_state.squeeze(dim=0)  # Remove time dimension from belief/state
-  action = planner(belief, posterior_state)  # Get action from planner(q(s_t|o≤t,a<t), p)
+  B = belief.shape[0]
+  belief, _, _, _, posterior_state, _, _ = transition_model(posterior_state.repeat([args.candidates, 1]), action.unsqueeze(dim=0).repeat([1, args.candidates, 1]), belief.repeat([args.candidates, 1]), encoder(observation).unsqueeze(dim=0).repeat([1, args.candidates, 1]))  # Action and observation need extra time dimension
+  belief, posterior_state = belief.squeeze(dim=0)[0:B,:], posterior_state.squeeze(dim=0)[0:B,:]  # Remove time dimension from belief/state
+  action = planner(belief, posterior_state, transition_model)  # Get action from planner(q(s_t|o≤t,a<t), p)
   if not test:
     action = action + args.action_noise * torch.randn_like(action)  # Add exploration noise ε ~ p(ε) to the action
   next_observation, reward, done = env.step(action.cpu() if isinstance(env, EnvBatcher) else action[0].cpu())  # Perform environment step (action repeats handled internally)
@@ -201,6 +202,7 @@ for episode in tqdm(range(metrics['episodes'][-1] + 1, args.episodes + 1), total
       if done:
         pbar.close()
         break
+    transition_model.rnn.memory = None
     
     # Update and plot train reward metrics
     metrics['steps'].append(t + metrics['steps'][-1])
@@ -232,6 +234,7 @@ for episode in tqdm(range(metrics['episodes'][-1] + 1, args.episodes + 1), total
         if done.sum().item() == args.test_episodes:
           pbar.close()
           break
+      transition_model.rnn.memory = None
     
     # Update and plot reward metrics (and write video if applicable) and save metrics
     metrics['test_episodes'].append(episode)
