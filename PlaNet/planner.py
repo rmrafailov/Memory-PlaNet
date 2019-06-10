@@ -26,6 +26,7 @@ class MPCPlanner(nn.Module):
     #print("B", "H", "Z", B, H, Z)
     for _ in range(self.optimisation_iters):
       running_transition_model = copy.deepcopy(transition_model)
+      running_transition_model.rnn.allow_writting = False
       # Evaluate J action sequences from the current belief (over entire sequence at once, batched over particles)
       actions = (action_mean + action_std_dev * torch.randn(self.planning_horizon, B, self.candidates, self.action_size, device=action_mean.device)).view(self.planning_horizon, B * self.candidates, self.action_size)  # Sample actions (time x (batch x candidates) x actions)
       #print("PLANNER ACTIONS", actions.shape)

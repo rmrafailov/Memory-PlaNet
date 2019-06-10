@@ -452,11 +452,12 @@ class DistSharpnessEnhancer(torch.nn.Module):
 
 
 class DNC(torch.nn.Module):
-    def __init__(self, input_size, output_size, word_length, cell_count, n_read_heads, controller, batch_first=False, clip_controller=20,
-                 bias=True, mask=False, dealloc_content=True, link_sharpness_control=True, disable_content_norm=False,
+    def __init__(self, input_size, output_size, word_length, cell_count, n_read_heads, controller, allow_writting = True, batch_first=False, 
+                 clip_controller=20, bias=True, mask=False, dealloc_content=True, link_sharpness_control=True, disable_content_norm=False,
                  mask_min=0.0, disable_key_masking=False):
         super(DNC, self).__init__()
-
+        
+        self.allow_writting = allow_writting
         self.clip_controller = clip_controller
 
         self.read_head = RawReadHead(n_read_heads, word_length, use_mask=mask, disable_content_norm=disable_content_norm,
@@ -531,11 +532,15 @@ class DNC(torch.nn.Module):
         tensors = tensors[2:]
 
         prev_read_dist = self.read_head.get_prev_dist(self.memory)
-
-        self.memory = self.write_head(self.memory, write_head_control, prev_read_dist, debug=dict_get(debug,"write_head"))
-
-        prev_write = self.write_head.get_prev_write()
-        forward_dist, backward_dist = self.temporal_link( prev_write["write_dist"] if prev_write is not None else None, prev_read_dist, debug=dict_get(debug, "temporal_links"))
+        
+        
+        if self.allow_writting:
+            self.memory = self.write_head(self.memory, write_head_control, prev_read_dist, debug=dict_get(debug,"write_head"))
+            prev_write = self.write_head.get_prev_write()
+            forward_dist, backward_dist = self.temporal_link(prev_write["write_dist"] if prev_write is not None else None, prev_read_dist, debug=dict_get(debug, "temporal_links"))
+        else:
+            prev_write = self.write_head.get_prev_write()
+            forward_dist, backward_dist = self.temporal_link(torch.zeros_like(prev_write["write_dist"]) if prev_write is not None else None, prev_read_dist, debug=dict_get(debug, "temporal_links"))
 
         if self.sharpness_control is not None:
             forward_dist, backward_dist = self.sharpness_control(tensors[0], forward_dist, backward_dist)

@@ -17,6 +17,7 @@ from dnc.Models.DNC import DNC as EnhancedDNC
 
 # Hyperparameters
 parser = argparse.ArgumentParser(description='PlaNet')
+parser = argparse.ArgumentParser(description='PlaNet')
 parser.add_argument('--id', type=str, default='default', help='Experiment ID')
 parser.add_argument('--seed', type=int, default=1, metavar='S', help='Random seed')
 parser.add_argument('--disable-cuda', action='store_true', help='Disable CUDA')
@@ -32,9 +33,9 @@ parser.add_argument('--state-size', type=int, default=30, metavar='Z', help='Sta
 parser.add_argument('--action-repeat', type=int, default=2, metavar='R', help='Action repeat')
 parser.add_argument('--action-noise', type=float, default=0.3, metavar='ε', help='Action noise')
 parser.add_argument('--episodes', type=int, default=1000, metavar='E', help='Total number of episodes')
-parser.add_argument('--seed-episodes', type=int, default=1, metavar='S', help='Seed episodes')
-parser.add_argument('--collect-interval', type=int, default=10, metavar='C', help='Collect interval')
-parser.add_argument('--batch-size', type=int, default=50, metavar='B', help='Batch size')
+parser.add_argument('--seed-episodes', type=int, default=5, metavar='S', help='Seed episodes')
+parser.add_argument('--collect-interval', type=int, default=100, metavar='C', help='Collect interval')
+parser.add_argument('--batch-size', type=int, default=32, metavar='B', help='Batch size')
 parser.add_argument('--chunk-size', type=int, default=50, metavar='L', help='Chunk size')
 parser.add_argument('--overshooting-distance', type=int, default=50, metavar='D', help='Latent overshooting distance/latent overshooting weight for t = 1')
 parser.add_argument('--overshooting-kl-beta', type=float, default=0, metavar='β>1', help='Latent overshooting KL weight for t > 1 (0 to disable)')
@@ -42,14 +43,17 @@ parser.add_argument('--overshooting-reward-scale', type=float, default=0, metava
 parser.add_argument('--global-kl-beta', type=float, default=0, metavar='βg', help='Global KL weight (0 to disable)')
 parser.add_argument('--free-nats', type=float, default=3, metavar='F', help='Free nats')
 parser.add_argument('--bit-depth', type=int, default=5, metavar='B', help='Image bit depth (quantisation)')
-parser.add_argument('--learning-rate', type=float, default=1e-3, metavar='α', help='Learning rate')  # Note that original has a linear learning rate decay, but it seems unlikely that this makes a significant difference
+parser.add_argument('--learning-rate', type=float, default=1e-3, metavar='α', help='Learning rate') 
+parser.add_argument('--learning-rate-schedule', type=int, default=0, metavar='αS', help='Linear learning rate schedule (optimisation steps from 0 to final learning rate; 0 to disable)') 
+parser.add_argument('--adam-epsilon', type=float, default=1e-4, metavar='ε', help='Adam optimiser epsilon value') 
+# Note that original has a linear learning rate decay, but it seems unlikely that this makes a significant difference
 parser.add_argument('--grad-clip-norm', type=float, default=1000, metavar='C', help='Gradient clipping norm')
 parser.add_argument('--planning-horizon', type=int, default=12, metavar='H', help='Planning horizon distance')
 parser.add_argument('--optimisation-iters', type=int, default=10, metavar='I', help='Planning optimisation iterations')
-parser.add_argument('--candidates', type=int, default=123, metavar='J', help='Candidate samples per iteration')
+parser.add_argument('--candidates', type=int, default=1000, metavar='J', help='Candidate samples per iteration')
 parser.add_argument('--top-candidates', type=int, default=100, metavar='K', help='Number of top candidates to fit')
-parser.add_argument('--test-interval', type=int, default=2, metavar='I', help='Test interval (episodes)')
-parser.add_argument('--test-episodes', type=int, default=10, metavar='E', help='Number of test episodes')
+parser.add_argument('--test-interval', type=int, default=10, metavar='I', help='Test interval (episodes)')
+parser.add_argument('--test-episodes', type=int, default=4, metavar='E', help='Number of test episodes')
 parser.add_argument('--checkpoint-interval', type=int, default=50, metavar='I', help='Checkpoint interval (episodes)')
 parser.add_argument('--checkpoint-experience', action='store_true', help='Checkpoint experience replay')
 parser.add_argument('--load-experience', action='store_true', help='Load experience replay (from checkpoint dir)')
@@ -119,6 +123,7 @@ def update_belief_and_act(args, env, planner, transition_model, encoder, belief,
   B = belief.shape[0]
   belief, _, _, _, posterior_state, _, _ = transition_model(posterior_state.repeat([args.candidates, 1]), action.unsqueeze(dim=0).repeat([1, args.candidates, 1]), belief.repeat([args.candidates, 1]), encoder(observation).unsqueeze(dim=0).repeat([1, args.candidates, 1]))  # Action and observation need extra time dimension
   belief, posterior_state = belief.squeeze(dim=0)[0:B,:], posterior_state.squeeze(dim=0)[0:B,:]  # Remove time dimension from belief/state
+
   action = planner(belief, posterior_state, transition_model)  # Get action from planner(q(s_t|o≤t,a<t), p)
   if not test:
     action = action + args.action_noise * torch.randn_like(action)  # Add exploration noise ε ~ p(ε) to the action
