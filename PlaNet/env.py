@@ -1,10 +1,11 @@
 import cv2
 import numpy as np
 import torch
-
+from pacman import POPacman
 
 GYM_ENVS = ['CartPole-v0', 'Pendulum-v0', 'MountainCarContinuous-v0', 'Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Humanoid-v2', 'HumanoidStandup-v2', 'InvertedDoublePendulum-v2', 'InvertedPendulum-v2', 'Reacher-v2', 'Swimmer-v2', 'Walker2d-v2']
 CONTROL_SUITE_ENVS = ['cartpole-balance', 'cartpole-swingup', 'reacher-easy', 'finger-spin', 'cheetah-run', 'ball_in_cup-catch', 'walker-walk']
+CS379C_ENVS = ['POPacman']
 CONTROL_SUITE_ACTION_REPEATS = {'cartpole': 8, 'reacher': 4, 'finger': 2, 'cheetah': 4, 'ball_in_cup': 6, 'walker': 2}
 
 
@@ -144,6 +145,8 @@ def Env(env, symbolic, seed, max_episode_length, action_repeat, bit_depth):
     return GymEnv(env, symbolic, seed, max_episode_length, action_repeat, bit_depth)
   elif env in CONTROL_SUITE_ENVS:
     return ControlSuiteEnv(env, symbolic, seed, max_episode_length, action_repeat, bit_depth)
+  elif env in CS379C_ENVS:
+      return POPacman(env, symbolic, seed, max_episode_length, action_repeat, bit_depth)
 
 
 # Wrapper for batching environments together

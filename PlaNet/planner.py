@@ -69,7 +69,5 @@ class MPCPlanner(nn.Module):
       #print(type(action_mean[0].squeeze(dim=1)))
       return action_mean[0].squeeze(dim=1)
     elif self.mode is 'discrete':
-      print("final action_probs shape")
-      print(action_probs.shape)
       out = action_probs.max(dim=2)
       return out[1].type('torch.FloatTensor')
