@@ -14,6 +14,7 @@ from models import bottle, Encoder, ObservationModel, RewardModel, TransitionMod
 from planner import MPCPlanner
 from utils import lineplot, write_video
 from dnc.Models.DNC import DNC as EnhancedDNC
+import gym
 
 # Hyperparameters
 parser = argparse.ArgumentParser(description='PlaNet')
@@ -72,13 +73,14 @@ os.makedirs(results_dir, exist_ok=True)
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 if torch.cuda.is_available() and not args.disable_cuda:
+  print("Using cuda!")
   args.device = torch.device('cuda')
   torch.cuda.manual_seed(args.seed)
 else:
   args.device = torch.device('cpu')
 metrics = {'steps': [], 'episodes': [], 'train_rewards': [], 'test_episodes': [], 'test_rewards': [], 'observation_loss': [], 'reward_loss': [], 'kl_loss': []}
 
-
+print("Initializing environment!")
 # Initialise training environment and experience replay memory
 env = Env(args.env, args.symbolic_env, args.seed, args.max_episode_length, args.action_repeat, args.bit_depth)
 if args.load_experience:
@@ -98,7 +100,7 @@ else:
     metrics['steps'].append(t * args.action_repeat + (0 if len(metrics['steps']) == 0 else metrics['steps'][-1]))
     metrics['episodes'].append(s)
 
-
+print("Initializing model parameters!")
 # Initialise model parameters randomly
 transition_model = TransitionModel(args.belief_size, args.state_size, env.action_size, args.hidden_size, args.embedding_size, args.activation_function).to(device=args.device)
 observation_model = ObservationModel(args.symbolic_env, env.observation_size, args.belief_size, args.state_size, args.embedding_size, args.activation_function).to(device=args.device)
@@ -113,7 +115,13 @@ if args.load_checkpoint > 0:
   reward_model.load_state_dict(model_dicts['reward_model'])
   encoder.load_state_dict(model_dicts['encoder'])
   optimiser.load_state_dict(model_dicts['optimiser'])
-planner = MPCPlanner(env.action_size, args.planning_horizon, args.optimisation_iters, args.candidates, args.top_candidates, transition_model, reward_model)
+
+mode = "continuous"
+num_actions = -1
+if type(env._env.action_space) == gym.spaces.discrete.Discrete:
+    mode = "discrete"
+    num_actions = env._env.action_space.n
+planner = MPCPlanner(env.action_size, args.planning_horizon, args.optimisation_iters, args.candidates, args.top_candidates, transition_model, reward_model, mode=mode, num_actions=num_actions)
 global_prior = Normal(torch.zeros(args.batch_size, args.state_size, device=args.device), torch.ones(args.batch_size, args.state_size, device=args.device))  # Global prior N(0, I)
 free_nats = torch.full((1, ), args.free_nats, device=args.device)  # Allowed deviation in KL divergence
 
@@ -121,19 +129,26 @@ free_nats = torch.full((1, ), args.free_nats, device=args.device)  # Allowed dev
 def update_belief_and_act(args, env, planner, transition_model, encoder, belief, posterior_state, action, observation, test):
   # Infer belief over current state q(s_t|o≤t,a<t) from the history
   B = belief.shape[0]
-  belief, _, _, _, posterior_state, _, _ = transition_model(posterior_state.repeat([args.candidates, 1]), action.unsqueeze(dim=0).repeat([1, args.candidates, 1]), belief.repeat([args.candidates, 1]), encoder(observation).unsqueeze(dim=0).repeat([1, args.candidates, 1]))  # Action and observation need extra time dimension
+  belief, _, _, _, posterior_state, _, _ = transition_model(posterior_state.repeat([args.candidates, 1]), action.to(belief.device).unsqueeze(dim=0).repeat([1, args.candidates, 1]), belief.repeat([args.candidates, 1]), encoder(observation).unsqueeze(dim=0).repeat([1, args.candidates, 1]))  # Action and observation need extra time dimension
   belief, posterior_state = belief.squeeze(dim=0)[0:B,:], posterior_state.squeeze(dim=0)[0:B,:]  # Remove time dimension from belief/state
 
   action = planner(belief, posterior_state, transition_model)  # Get action from planner(q(s_t|o≤t,a<t), p)
-  if not test:
+  #print(action)
+  #if mode == "discrete":
+  #  action = action[0]
+  #print(action)
+  if not test and mode == "continuous":
     action = action + args.action_noise * torch.randn_like(action)  # Add exploration noise ε ~ p(ε) to the action
-  next_observation, reward, done = env.step(action.cpu() if isinstance(env, EnvBatcher) else action[0].cpu())  # Perform environment step (action repeats handled internally)
-  return belief, posterior_state, action, next_observation, reward, done
+  #next_observation, reward, done = env.step(action.cpu() if isinstance(env, EnvBatcher) else action[0].cpu())  # Perform environment step (action repeats handled internally)
+  next_observation, reward, done = env.step(action.view(-1, 1).cpu() if isinstance(env, EnvBatcher) else int(action[0].cpu().item()))  # Perform environment step (action repeats handled internally)
+  return belief, posterior_state, action[0], next_observation, reward, done
 
-
+print("Starting training!")
 for episode in tqdm(range(metrics['episodes'][-1] + 1, args.episodes + 1), total=args.episodes, initial=metrics['episodes'][-1] + 1):
+  print("Starting episode {}".format(episode))
   # Model fitting
   losses = []
+  print("Drawing sequence chunks")
   for s in tqdm(range(args.collect_interval)):
     # Draw sequence chunks {(o_t, a_t, r_t+1, terminal_t+1)} ~ D uniformly at random from the dataset (including terminal flags)
     observations, actions, rewards, nonterminals = D.sample(args.batch_size, args.chunk_size)  # Transitions start at time t = 0
@@ -192,6 +207,7 @@ for episode in tqdm(range(metrics['episodes'][-1] + 1, args.episodes + 1), total
   lineplot(metrics['episodes'][-len(metrics['kl_loss']):], metrics['kl_loss'], 'kl_loss', results_dir)
 
 
+  print("Starting data collection")
   # Data collection
   with torch.no_grad():
     observation, total_reward = env.reset(), 0
@@ -215,7 +231,7 @@ for episode in tqdm(range(metrics['episodes'][-1] + 1, args.episodes + 1), total
     metrics['train_rewards'].append(total_reward)
     lineplot(metrics['episodes'][-len(metrics['train_rewards']):], metrics['train_rewards'], 'train_rewards', results_dir)
 
-
+  print("Testing!")
   # Test model
   if episode % args.test_interval == 0:
     # Set models to eval mode
@@ -262,7 +278,9 @@ for episode in tqdm(range(metrics['episodes'][-1] + 1, args.episodes + 1), total
 
 
   # Checkpoint models
+  print("Completed episode {}".format(episode))
   if episode % args.checkpoint_interval == 0:
+    print("Saving!")
     torch.save({'transition_model': transition_model.state_dict(), 'observation_model': observation_model.state_dict(), 'reward_model': reward_model.state_dict(), 'encoder': encoder.state_dict(), 'optimiser': optimiser.state_dict()}, os.path.join(results_dir, 'models_%d.pth' % episode))
     if args.checkpoint_experience:
       torch.save(D, os.path.join(results_dir, 'experience.pth'))  # Warning: will fail with MemoryError with large memory sizes

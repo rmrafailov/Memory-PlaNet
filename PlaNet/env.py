@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 
-GYM_ENVS = ['Pendulum-v0', 'MountainCarContinuous-v0', 'Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Humanoid-v2', 'HumanoidStandup-v2', 'InvertedDoublePendulum-v2', 'InvertedPendulum-v2', 'Reacher-v2', 'Swimmer-v2', 'Walker2d-v2']
+GYM_ENVS = ['CartPole-v0', 'Pendulum-v0', 'MountainCarContinuous-v0', 'Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Humanoid-v2', 'HumanoidStandup-v2', 'InvertedDoublePendulum-v2', 'InvertedPendulum-v2', 'Reacher-v2', 'Swimmer-v2', 'Walker2d-v2']
 CONTROL_SUITE_ENVS = ['cartpole-balance', 'cartpole-swingup', 'reacher-easy', 'finger-spin', 'cheetah-run', 'ball_in_cup-catch', 'walker-walk']
 CONTROL_SUITE_ACTION_REPEATS = {'cartpole': 8, 'reacher': 4, 'finger': 2, 'cheetah': 4, 'ball_in_cup': 6, 'walker': 2}
 
@@ -100,7 +100,8 @@ class GymEnv():
       return _images_to_observation(self._env.render(mode='rgb_array'), self.bit_depth)
   
   def step(self, action):
-    action = action.detach().numpy()
+    if type(action) not in [float, int]:
+      action = action.detach().numpy()
     reward = 0
     for k in range(self.action_repeat):
       state, reward_k, done, _ = self._env.step(action)
@@ -127,11 +128,15 @@ class GymEnv():
 
   @property
   def action_size(self):
-    return self._env.action_space.shape[0]
+    sz = 1
+    if not self._env.action_space.shape is ():
+        sz = self._env.action_space.shape[0]
+    return sz
 
   # Sample an action randomly from a uniform distribution over all valid actions
   def sample_random_action(self):
-    return torch.from_numpy(self._env.action_space.sample())
+    arr = np.array(self._env.action_space.sample())
+    return torch.from_numpy(arr)
 
 
 def Env(env, symbolic, seed, max_episode_length, action_repeat, bit_depth):
@@ -156,7 +161,7 @@ class EnvBatcher():
 
   # Steps/resets every environment and returns (observation, reward, done); returns blank observation once done
   def step(self, actions):
-    observations, rewards, dones = zip(*[env.step(action) for env, action in zip(self.envs, actions)])
+    observations, rewards, dones = zip(*[env.step(int(action.item())) for env, action in zip(self.envs, actions)])
     self.dones = dones
     return torch.cat(observations), torch.tensor(rewards, dtype=torch.float32), torch.tensor(dones, dtype=torch.uint8)
 
