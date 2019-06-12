@@ -59,7 +59,7 @@ parser.add_argument('--checkpoint-interval', type=int, default=50, metavar='I', 
 parser.add_argument('--checkpoint-experience', action='store_true', help='Checkpoint experience replay')
 parser.add_argument('--load-experience', action='store_true', help='Load experience replay (from checkpoint dir)')
 parser.add_argument('--load-checkpoint', type=int, default=0, metavar='E', help='Load model checkpoint (from given episode)')
-parser.add_argument('--render', action='store_true', help='Render environment')
+parser.add_argument('--render', default = False , action='store_true', help='Render environment')
 args = parser.parse_args()
 args.overshooting_distance = min(args.chunk_size, args.overshooting_distance)  # Overshooting distance cannot be greater than chunk size
 print(' ' * 26 + 'Options')
